@@ -1,0 +1,16 @@
+{
+  "name": "节律石",
+  "version": "1.0.0",
+  "description": "Task management & To-Do 风格的网页应用，基于 DeepSeek API",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required'"
+  },
+  "keywords": ["task", "todo", "deepseek", "vercel"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}
+

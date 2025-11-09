@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>节律石 · 任务推荐</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 20px;
+    }
+
+    .main-content {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+
+    .sidebar {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      height: fit-content;
+      position: sticky;
+      top: 20px;
+    }
+
+    h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+      color: #667eea;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      background: #f0f0f0;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-bottom: 20px;
+      color: #666;
+    }
+
+    .status-badge.success {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-badge.fallback {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-badge.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #555;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .range-input {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .range-input input[type="range"] {
+      flex: 1;
+    }
+
+    .range-value {
+      min-width: 30px;
+      text-align: center;
+      font-weight: 600;
+      color: #667eea;
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #5568d3;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: #f0f0f0;
+      color: #333;
+    }
+
+    .btn-secondary:hover {
+      background: #e0e0e0;
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: loading 1.5s ease-in-out infinite;
+      border-radius: 8px;
+      height: 120px;
+      margin-bottom: 16px;
+    }
+
+    @keyframes loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    .task-card {
+      background: #f8f9fa;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .task-card:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    .task-card-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #333;
+    }
+
+    .task-card-action {
+      font-size: 14px;
+      color: #666;
+      margin-top: 8px;
+    }
+
+    .detail-page {
+      display: none;
+    }
+
+    .detail-page.active {
+      display: block;
+    }
+
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .detail-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .detail-section {
+      margin-bottom: 24px;
+    }
+
+    .detail-section-label {
+      font-size: 12px;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .detail-section-content {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .history-list {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .history-item {
+      padding: 12px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .history-item:last-child {
+      border-bottom: none;
+    }
+
+    .history-title {
+      font-size: 14px;
+      color: #333;
+      flex: 1;
+    }
+
+    .history-time {
+      font-size: 12px;
+      color: #999;
+      margin-left: 12px;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .history-title-header {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .error-message {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="main-content">
+      <h1>节律石</h1>
+      <div class="status-badge" id="statusBadge">等待获取推荐</div>
+
+      <!-- 输入表单 -->
+      <div id="inputForm">
+        <div class="form-group">
+          <label>心情 (-2 ~ +2)</label>
+          <div class="range-input">
+            <input type="range" id="moodInput" min="-2" max="2" value="0" step="1">
+            <span class="range-value" id="moodValue">0</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>能量 (1 ~ 5)</label>
+          <div class="range-input">
+            <input type="range" id="energyInput" min="1" max="5" value="3" step="1">
+            <span class="range-value" id="energyValue">3</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>时间段</label>
+          <select id="timeOfDayInput">
+            <option value="morning">早晨</option>
+            <option value="noon">中午</option>
+            <option value="evening">晚上</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>地点（可选）</label>
+          <input type="text" id="placeInput" placeholder="例如：家里、办公室">
+        </div>
+
+        <button class="btn btn-primary" id="getRecommendBtn">获取推荐</button>
+      </div>
+
+      <!-- 加载骨架屏 -->
+      <div id="loadingSkeleton" style="display: none;">
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+      </div>
+
+      <!-- 任务卡片区 -->
+      <div id="taskCardsArea" style="display: none;">
+        <div id="taskCardsContainer"></div>
+        <button class="btn btn-secondary" id="changeTaskBtn" style="margin-top: 16px;">换一个</button>
+        <button class="btn btn-secondary btn-small" id="clearRecentBtn" style="margin-top: 8px;">清空近期已看</button>
+      </div>
+
+      <!-- 详情页 -->
+      <div class="detail-page" id="detailPage">
+        <div class="detail-header">
+          <h2 class="detail-title" id="detailTitle"></h2>
+          <button class="btn btn-secondary btn-small" id="backBtn">返回</button>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-section-label">最小启动动作</div>
+          <div class="detail-section-content" id="detailMinAction"></div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-section-label">完成后反馈</div>
+          <div class="detail-section-content" id="detailFeedback"></div>
+        </div>
+
+        <button class="btn btn-primary" id="completeBtn" style="width: 100%; margin-top: 24px;">确认完成</button>
+      </div>
+
+      <!-- 错误提示 -->
+      <div id="errorMessage" style="display: none;"></div>
+    </div>
+
+    <!-- 历史列表侧边栏 -->
+    <div class="sidebar">
+      <div class="history-header">
+        <h2 class="history-title-header">完成历史</h2>
+        <button class="btn btn-secondary btn-small" id="clearHistoryBtn">清空</button>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="empty-state">
+          <div class="empty-state-icon">📝</div>
+          <div>暂无完成记录</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
