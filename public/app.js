@@ -226,7 +226,134 @@ async function logCompletion(title, ts, mood, energy) {
 
 // ==================== 任务选择逻辑 ====================
 
-// 从候选任务中选择一个（避免近期重复）
+// 提取任务标题的核心关键词（用于相似度比较）
+function extractKeywords(title) {
+  if (!title) return [];
+  
+  // 移除常见的修饰词和量词（但保留核心对象）
+  const modifiers = ['一杯', '一口', '半杯', '一', '两', '三', '几', '一些', 
+                     '慢慢', '快速', '轻轻', '用力',
+                     '30秒', '10秒', '3次', '5次', '一次'];
+  
+  // 温度修饰词（移除但记住核心对象）
+  const tempModifiers = ['热', '冷', '温', '凉', '开'];
+  
+  let text = title;
+  
+  // 先移除温度修饰词，但保留后面的核心词
+  tempModifiers.forEach(mod => {
+    text = text.replace(new RegExp(mod, 'g'), '');
+  });
+  
+  // 再移除其他修饰词
+  modifiers.forEach(mod => {
+    text = text.replace(new RegExp(mod, 'g'), '');
+  });
+  
+  // 提取核心动作词和对象（简单的中文分词）
+  // 常见动作词：喝、吃、站、走、看、做、整理、洗、开、关、呼吸、伸展等
+  const actionWords = ['喝', '吃', '站', '走', '看', '做', '整理', '洗', '开', '关', 
+                       '呼吸', '伸展', '转', '拍', '擦', '装', '收拾', '倒', '拿', '起身'];
+  
+  const keywords = [];
+  for (const action of actionWords) {
+    if (text.includes(action)) {
+      keywords.push(action);
+      // 提取动作后的对象（通常是1-4个字符）
+      const actionIndex = text.indexOf(action);
+      const afterAction = text.substring(actionIndex + action.length).trim();
+      if (afterAction.length > 0) {
+        // 提取对象（去除标点和空格，取前2-3个字符）
+        const obj = afterAction.replace(/[，。！？、\s]/g, '').substring(0, 3);
+        if (obj && obj.length > 0) {
+          // 移除常见的后缀词
+          const suffixWords = ['并', '然后', '之后', '后'];
+          let cleanObj = obj;
+          suffixWords.forEach(suffix => {
+            if (cleanObj.includes(suffix)) {
+              cleanObj = cleanObj.replace(suffix, '');
+            }
+          });
+          if (cleanObj.length > 0) {
+            keywords.push(cleanObj);
+          }
+        }
+      }
+    }
+  }
+  
+  // 如果没有找到动作词，返回前2-3个字符作为关键词
+  if (keywords.length === 0) {
+    const cleaned = text.replace(/[，。！？、\s]/g, '').trim();
+    if (cleaned.length > 0) {
+      keywords.push(cleaned.substring(0, Math.min(3, cleaned.length)));
+    }
+  }
+  
+  return keywords.filter(k => k.length > 0);
+}
+
+// 计算两个任务标题的相似度（0-1）
+function calculateSimilarity(title1, title2) {
+  if (title1 === title2) return 1.0;
+  
+  const keywords1 = extractKeywords(title1);
+  const keywords2 = extractKeywords(title2);
+  
+  // 如果关键词完全相同，返回高相似度
+  if (keywords1.length > 0 && keywords2.length > 0) {
+    const set1 = new Set(keywords1);
+    const set2 = new Set(keywords2);
+    if (set1.size === set2.size && keywords1.every(k => set2.has(k))) {
+      return 0.95; // 关键词完全相同，高度相似
+    }
+  }
+  
+  if (keywords1.length === 0 || keywords2.length === 0) {
+    // 如果无法提取关键词，使用简单的字符串包含检查
+    const longer = title1.length > title2.length ? title1 : title2;
+    const shorter = title1.length > title2.length ? title2 : title1;
+    return longer.includes(shorter) ? 0.7 : 0;
+  }
+  
+  // 计算共同关键词的比例（Jaccard 相似度）
+  const commonKeywords = keywords1.filter(k => keywords2.includes(k));
+  const totalKeywords = new Set([...keywords1, ...keywords2]).size;
+  
+  if (totalKeywords === 0) return 0;
+  
+  let similarity = commonKeywords.length / totalKeywords;
+  
+  // 如果核心动作词相同，提高相似度
+  if (keywords1[0] && keywords2[0] && keywords1[0] === keywords2[0]) {
+    similarity = Math.max(similarity, 0.6);
+    
+    // 如果动作词相同，且都有对象词，且对象词也相同或相似，进一步提高相似度
+    if (keywords1.length > 1 && keywords2.length > 1) {
+      const obj1 = keywords1[1];
+      const obj2 = keywords2[1];
+      // 如果对象词相同或一个包含另一个
+      if (obj1 === obj2 || obj1.includes(obj2) || obj2.includes(obj1)) {
+        similarity = Math.max(similarity, 0.85);
+      }
+    }
+  }
+  
+  return similarity;
+}
+
+// 检查任务是否与近期展示的任务相似
+function isSimilarToRecent(title, recentShown, threshold = 0.6) {
+  for (const recentTitle of recentShown) {
+    const similarity = calculateSimilarity(title, recentTitle);
+    if (similarity >= threshold) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// 从候选任务中选择一个（避免近期重复，包括语义相似）
 function selectTask(tasks) {
   if (!tasks || tasks.length === 0) {
     return null;
@@ -234,15 +361,38 @@ function selectTask(tasks) {
 
   const recentShown = getRecentShown();
   
-  // 优先选择不在 recentShown 中的任务
+  // 第一优先级：完全不在 recentShown 中，且语义不相似
   for (const task of tasks) {
-    if (!recentShown.includes(task.title)) {
+    if (!recentShown.includes(task.title) && !isSimilarToRecent(task.title, recentShown, 0.6)) {
       return task;
     }
   }
   
-  // 如果都在 recentShown 中，返回第一个
-  return tasks[0];
+  // 第二优先级：不在 recentShown 中，但可能语义相似（降低阈值）
+  for (const task of tasks) {
+    if (!recentShown.includes(task.title) && !isSimilarToRecent(task.title, recentShown, 0.8)) {
+      return task;
+    }
+  }
+  
+  // 第三优先级：语义相似度较低的任务
+  let bestTask = tasks[0];
+  let minSimilarity = 1.0;
+  
+  for (const task of tasks) {
+    let maxSim = 0;
+    for (const recentTitle of recentShown) {
+      const sim = calculateSimilarity(task.title, recentTitle);
+      maxSim = Math.max(maxSim, sim);
+    }
+    if (maxSim < minSimilarity) {
+      minSimilarity = maxSim;
+      bestTask = task;
+    }
+  }
+  
+  // 如果所有任务都很相似，返回相似度最低的
+  return bestTask;
 }
 
 // ==================== 渲染函数 ====================
