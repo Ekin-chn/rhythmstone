@@ -1,0 +1,15 @@
+{
+  "name": "rhythmstone-web",
+  "version": "1.3.2",
+  "private": true,
+  "description": "Rhythm Stone web控制端，含WS联动与三卡片体验",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "echo \"No lint step configured yet\""
+  },
+  "devDependencies": {
+    "vite": "^5.3.3"
+  }
+}
