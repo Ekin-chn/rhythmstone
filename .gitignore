@@ -1,0 +1,15 @@
+# Node
+node_modules/
+web/node_modules/
+
+# Build outputs
+web/dist/
+dist/
+
+# PlatformIO
+.pio/
+.ccls-cache/
+
+# Misc
+.DS_Store
+.env*
