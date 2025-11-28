@@ -6,7 +6,7 @@
       "src": "web/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "web/dist"
+        "distDir": "dist"
       }
     },
     {
@@ -14,10 +14,10 @@
       "use": "@vercel/node"
     }
   ],
-  "installCommand": "cd web && npm install",
+  "installCommand": "cd web && npm install --legacy-peer-deps",
   "buildCommand": "cd web && npm run build",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/web/index.html" }
   ]
 }
