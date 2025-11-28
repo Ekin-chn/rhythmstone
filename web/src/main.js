@@ -4,61 +4,72 @@ const STORAGE_KEYS = {
   HISTORY_LIST: 'historyList'
 };
 
-function getRecentShown() {
+function readList(key) {
   try {
-    const data = localStorage.getItem(STORAGE_KEYS.RECENT_SHOWN);
-    return data ? JSON.parse(data) : [];
+    const data = localStorage.getItem(key);
+    const parsed = data ? JSON.parse(data) : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch (e) {
+    console.error('Failed to read list:', key, e);
     return [];
   }
+}
+
+function writeList(key, list) {
+  try {
+    localStorage.setItem(key, JSON.stringify(list));
+  } catch (e) {
+    console.error('Failed to write list:', key, e);
+  }
+}
+
+function pushWithLimit(key, item, limit, uniqueKey) {
+  const list = readList(key);
+  try {
+    const filtered = list.filter(entry => {
+      if (uniqueKey) return entry?.[uniqueKey] !== item?.[uniqueKey];
+      return entry !== item;
+    });
+    filtered.unshift(item);
+    if (filtered.length > limit) filtered.length = limit;
+    writeList(key, filtered);
+    return filtered;
+  } catch (e) {
+    console.error('Failed to update list:', key, e);
+    return list;
+  }
+}
+
+function clearList(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch (e) {
+    console.error('Failed to clear list:', key, e);
+  }
+}
+
+function getRecentShown() {
+  return readList(STORAGE_KEYS.RECENT_SHOWN);
 }
 
 function addRecentShown(title) {
-  try {
-    let recent = getRecentShown();
-    recent = recent.filter(t => t !== title);
-    recent.unshift(title);
-    if (recent.length > 30) recent = recent.slice(0, 30);
-    localStorage.setItem(STORAGE_KEYS.RECENT_SHOWN, JSON.stringify(recent));
-  } catch (e) {
-    console.error('Failed to save recentShown:', e);
-  }
+  pushWithLimit(STORAGE_KEYS.RECENT_SHOWN, title, 30);
 }
 
 function clearRecentShown() {
-  try {
-    localStorage.removeItem(STORAGE_KEYS.RECENT_SHOWN);
-  } catch (e) {
-    console.error('Failed to clear recentShown:', e);
-  }
+  clearList(STORAGE_KEYS.RECENT_SHOWN);
 }
 
 function getHistoryList() {
-  try {
-    const data = localStorage.getItem(STORAGE_KEYS.HISTORY_LIST);
-    return data ? JSON.parse(data) : [];
-  } catch (e) {
-    return [];
-  }
+  return readList(STORAGE_KEYS.HISTORY_LIST);
 }
 
 function addHistoryItem(record) {
-  try {
-    let history = getHistoryList();
-    history.unshift(record);
-    if (history.length > 200) history = history.slice(0, 200);
-    localStorage.setItem(STORAGE_KEYS.HISTORY_LIST, JSON.stringify(history));
-  } catch (e) {
-    console.error('Failed to save history:', e);
-  }
+  pushWithLimit(STORAGE_KEYS.HISTORY_LIST, record, 200);
 }
 
 function clearHistoryList() {
-  try {
-    localStorage.removeItem(STORAGE_KEYS.HISTORY_LIST);
-  } catch (e) {
-    console.error('Failed to clear history:', e);
-  }
+  clearList(STORAGE_KEYS.HISTORY_LIST);
 }
 
 // ==================== 状态管理 ====================
