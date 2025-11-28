@@ -487,19 +487,18 @@ function showTasksArea() {
   elements.taskCardsArea.style.display = 'block';
 }
 
-async function handleGetRecommend() {
-  const mood = parseInt(elements.moodInput.value, 10);
-  const energy = parseInt(elements.energyInput.value, 10);
-  const timeOfDay = elements.timeOfDayInput.value;
-  const place = elements.placeInput.value.trim();
+async function loadTasks({ mood, energy, timeOfDay, place, sourceTextPrefix, button }) {
+  if (!button) return;
 
   currentMood = mood;
   currentEnergy = energy;
   currentTimeOfDay = timeOfDay;
   currentPlace = place;
 
-  elements.getRecommendBtn.disabled = true;
-  updateStatusBadge('正在获取推荐...', '');
+  const isRefresh = sourceTextPrefix === '已刷新';
+  const loadingText = isRefresh ? '正在获取新推荐...' : '正在获取推荐...';
+  button.disabled = true;
+  updateStatusBadge(loadingText, '');
   showLoading();
 
   try {
@@ -512,42 +511,49 @@ async function handleGetRecommend() {
     showTasksArea();
 
     const sourceText = data.source === 'deepseek' ? 'DeepSeek 推荐' : '离线兜底';
-    updateStatusBadge(`获取到 ${currentTasks.length} 条任务（${sourceText}）`, data.source === 'deepseek' ? 'success' : 'fallback');
+    updateStatusBadge(`${sourceTextPrefix} ${currentTasks.length} 条任务（${sourceText}）`, data.source === 'deepseek' ? 'success' : 'fallback');
   } catch (error) {
-    console.error('Failed to get recommendations:', error);
-    showError('获取推荐失败，请稍后重试');
+    console.error('Failed to load tasks:', error);
+    showError(isRefresh ? '获取新推荐失败，请稍后重试' : '获取推荐失败，请稍后重试');
     updateStatusBadge('获取失败', 'error');
     hideAllViews();
-    elements.inputForm.style.display = 'block';
+    if (currentTasks.length) {
+      showTasksArea();
+    } else {
+      elements.inputForm.style.display = 'block';
+    }
   } finally {
-    elements.getRecommendBtn.disabled = false;
+    button.disabled = false;
   }
+}
+
+async function handleGetRecommend() {
+  const mood = parseInt(elements.moodInput.value, 10);
+  const energy = parseInt(elements.energyInput.value, 10);
+  const timeOfDay = elements.timeOfDayInput.value;
+  const place = elements.placeInput.value.trim();
+
+  await loadTasks({
+    mood,
+    energy,
+    timeOfDay,
+    place,
+    sourceTextPrefix: '获取到',
+    button: elements.getRecommendBtn
+  });
 }
 
 async function handleChangeTask() {
   if (elements.changeTaskBtn.disabled) return;
-  elements.changeTaskBtn.disabled = true;
-  updateStatusBadge('正在获取新推荐...', '');
-  showLoading();
 
-  try {
-    const data = await fetchRecommendations(currentMood, currentEnergy, currentTimeOfDay, currentPlace);
-    currentTasks = (data.tasks || []).map(decorateTask);
-    if (!currentTasks.length) throw new Error('未获取到任务');
-
-    setActiveIndex(0);
-    renderTaskCards();
-    showTasksArea();
-
-    const sourceText = data.source === 'deepseek' ? 'DeepSeek 推荐' : '离线兜底';
-    updateStatusBadge(`已刷新 ${currentTasks.length} 条任务（${sourceText}）`, data.source === 'deepseek' ? 'success' : 'fallback');
-  } catch (error) {
-    console.error('Failed to change task:', error);
-    showError('获取新推荐失败，请稍后重试');
-    updateStatusBadge('获取失败', 'error');
-  } finally {
-    elements.changeTaskBtn.disabled = false;
-  }
+  await loadTasks({
+    mood: currentMood,
+    energy: currentEnergy,
+    timeOfDay: currentTimeOfDay,
+    place: currentPlace,
+    sourceTextPrefix: '已刷新',
+    button: elements.changeTaskBtn
+  });
 }
 
 function handlePrev() {
