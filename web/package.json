@@ -4,9 +4,9 @@
   "private": true,
   "description": "Rhythm Stone web控制端，含WS联动与三卡片体验",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host 0.0.0.0 --port 5173",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "npm run build && vite preview --host 0.0.0.0 --port 4173",
     "lint": "echo \"No lint step configured yet\""
   },
   "devDependencies": {

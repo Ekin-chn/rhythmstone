@@ -43,9 +43,9 @@ rhythmstone/
    npm run build
    ```
    构建产物位于 `web/dist/`，`vercel.json` 通过 `@vercel/static-build` 指定 dist 目录并附带 SPA 重写，避免 Vercel 将前端子目录误判为“未检测到框架”。
-4. 预览已构建产物（验证 Vercel 同源行为）
+4. 预览已构建产物（命令会自动先执行 build，再在 `0.0.0.0:4173` 启动预览）
    ```bash
-   npm run preview -- --host 0.0.0.0 --port 4173
+   npm run preview
    ```
    这样可在本地模拟 `/api` 代理与 SPA 重写是否生效，排查“本地预览不可访问”或 Vercel 配置问题。
 
